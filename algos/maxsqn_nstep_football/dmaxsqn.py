@@ -23,7 +23,7 @@ flags = tf.app.flags
 FLAGS = tf.app.flags.FLAGS
 
 # "1_vs_1_easy" '11_vs_11_competition' '11_vs_11_stochastic'
-flags.DEFINE_string("env_name", "11_vs_11_stochastic", "game env")
+flags.DEFINE_string("env_name", "11_vs_11_competition", "game env")
 flags.DEFINE_string("exp_name", "Exp1", "experiments name")
 flags.DEFINE_integer("num_workers", 6, "number of workers")
 flags.DEFINE_string("weights_file", "", "empty means False. "
@@ -184,6 +184,12 @@ def worker_train(ps, replay_buffer, opt, learner_index):
 
 @ray.remote
 def worker_rollout(ps, replay_buffer, opt, worker_index):
+    right_agent = Actor(opt, job="test")
+    keys, _ = right_agent.get_weights()
+    with open("./GoodWeights/343/343E1.pickle", "rb") as pickle_in:
+        weights_all = pickle.load(pickle_in)
+        weights = [weights_all[key] for key in keys]
+        right_agent.set_weights(keys, weights)
     worker_epsilon = 0
     if opt.epsilon != 0:
         worker_epsilon = opt.epsilon ** (1 + worker_index / (opt.num_workers - 1) * opt.epsilon_alpha)
@@ -196,9 +202,13 @@ def worker_rollout(ps, replay_buffer, opt, worker_index):
         if opt.game_difficulty != 0:
             using_difficulty = opt.game_difficulty
             env = football_env.create_environment(env_name=opt.rollout_env_name + '_' + str(using_difficulty),
+                                                  number_of_left_players_agent_controls=1,
+                                                  number_of_right_players_agent_controls=1,
                                                   stacked=opt.stacked, representation=opt.representation, render=False)
         else:
             env = football_env.create_environment(env_name=opt.rollout_env_name,
+                                                  number_of_left_players_agent_controls=1,
+                                                  number_of_right_players_agent_controls=1,
                                                   stacked=opt.stacked, representation=opt.representation, render=False)
         env = FootballWrapper(env, opt.action_repeat, opt.reward_scale)
         # ------ env set up end ------
@@ -215,13 +225,15 @@ def worker_rollout(ps, replay_buffer, opt, worker_index):
 
         o, r, d, ep_ret, ep_len = env.reset(), 0, False, 0, 0
 
+        left_o = o[0]
+
         ################################## deques reset
         t_queue = 1
         if opt.model == "cnn":
-            compressed_o = pack(o)
+            compressed_o = pack(left_o)
             o_queue.append((compressed_o,))
         else:
-            o_queue.append((o,))
+            o_queue.append((left_o,))
 
         ################################## deques reset
 
@@ -241,12 +253,17 @@ def worker_rollout(ps, replay_buffer, opt, worker_index):
             # don't need to random sample action if load weights from local.
             if t > opt.start_steps or opt.weights_file:
                 if np.random.rand() > worker_epsilon:
-                    a = agent.get_action(o, deterministic=False)
+                    left_action = agent.get_action(o[0], False)
+                    right_action = right_agent.get_action(o[1], True)
+                    a = [left_action, right_action]
                 else:
                     a = env.action_space.sample()
             else:
                 a = env.action_space.sample()
                 t += 1
+
+            left_action = a[0]
+            right_action = a[1]
             # Step the env
             o2, r, d, _ = env.step(a)
 
@@ -262,12 +279,14 @@ def worker_rollout(ps, replay_buffer, opt, worker_index):
 
             #################################### deques store
 
-            a_r_d_queue.append((a, r, d,))
+            left_o2 = o2[0]
+
+            a_r_d_queue.append((left_action, r[0], d,))
             if opt.model == "cnn":
-                compressed_o2 = pack(o2)
+                compressed_o2 = pack(left_o2)
                 o_queue.append((compressed_o2,))
             else:
-                o_queue.append((o2,))
+                o_queue.append((left_o2,))
 
             # scheme 1:
             # TODO  and t_queue % 2 == 0: %1 lead to q smaller
@@ -310,13 +329,15 @@ def worker_rollout(ps, replay_buffer, opt, worker_index):
 
                 o, r, d, ep_ret, ep_len = env.reset(), 0, False, 0, 0
 
+                left_o = o[0]
+
                 ################################## deques reset
                 t_queue = 1
                 if opt.model == "cnn":
-                    compressed_o = pack(o)
+                    compressed_o = pack(left_o)
                     o_queue.append((compressed_o,))
                 else:
-                    o_queue.append((o,))
+                    o_queue.append((left_o,))
 
                 ################################## deques reset
 
