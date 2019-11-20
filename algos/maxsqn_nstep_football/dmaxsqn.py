@@ -23,7 +23,7 @@ flags = tf.app.flags
 FLAGS = tf.app.flags.FLAGS
 
 # "1_vs_1_easy" '11_vs_11_competition' '11_vs_11_stochastic'
-flags.DEFINE_string("env_name", "1_vs_1_easy", "game env")
+flags.DEFINE_string("env_name", "11_vs_11_stochastic", "game env")
 flags.DEFINE_string("exp_name", "Exp1", "experiments name")
 flags.DEFINE_integer("num_workers", 6, "number of workers")
 flags.DEFINE_string("weights_file", "", "empty means False. "
