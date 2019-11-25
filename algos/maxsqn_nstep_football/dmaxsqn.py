@@ -289,7 +289,7 @@ def worker_rollout(ps, replay_buffer, opt, worker_index):
                 o_queue.append((left_o2,))
 
             # scheme 1:
-            # TODO  and t_queue % 2 == 0: %1 lead to q smaller
+            # TODO  and t_queue % 2 == 0: % 1 lead to q smaller
             if t_queue >= opt.Ln and t_queue % opt.save_freq == 0:
                 replay_buffer.store.remote(o_queue, a_r_d_queue, worker_index)
 
@@ -351,7 +351,7 @@ def worker_test(ps, replay_buffer, opt):
     time0 = time1 = time.time()
     sample_times1, steps, size = ray.get(replay_buffer.get_counts.remote())
 
-    max_sample_times = 0
+    max_steps = 0
     epsilon_score = 1
     while True:
 
@@ -401,12 +401,12 @@ def worker_test(ps, replay_buffer, opt):
                   time2 - time0)
             print("----------------------------------")
 
-            if sample_times2 // int(1e6) > max_sample_times:
-                pickle_out = open(opt.save_dir + "/" + str(sample_times2 // int(1e6))[:3] + "M_weights.pickle", "wb")
+            if steps // int(1e6) > max_steps:
+                pickle_out = open(opt.save_dir + "/" + str(steps // int(1e6))[:3] + "M_weights.pickle", "wb")
                 pickle.dump(weights_all, pickle_out)
                 pickle_out.close()
                 print("****** Weights saved by time! ******")
-                max_sample_times = sample_times2 // int(1e6)
+                max_steps = steps // int(1e6)
 
             if ep_ret > opt.max_ret:
                 pickle_out = open(opt.save_dir + "/" + "Max_weights.pickle", "wb")
