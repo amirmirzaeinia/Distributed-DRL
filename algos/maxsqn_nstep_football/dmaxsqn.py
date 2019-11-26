@@ -193,7 +193,7 @@ def worker_rollout(ps, replay_buffer, opt, worker_index):
             if 0 < s[0] < 1:
                 using_difficulty = int(s[0] // 0.05 + 1)
                 break
-        print(worker_index, "using difficulty:", using_difficulty)
+
         if opt.game_difficulty != 0:
             env = football_env.create_environment(env_name=opt.rollout_env_name + '_' + str(using_difficulty),
                                                   stacked=opt.stacked, representation=opt.representation, render=False)
@@ -447,6 +447,7 @@ if __name__ == '__main__':
 
     task_train = [worker_train.remote(ps, replay_buffer, opt, i) for i in range(opt.num_learners)]
 
+    time.sleep(10)
     while True:
         task_test = worker_test.remote(ps, replay_buffer, opt)
         ray.wait([task_test, ])
