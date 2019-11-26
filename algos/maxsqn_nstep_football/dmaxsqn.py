@@ -294,10 +294,6 @@ def worker_rollout(ps, replay_buffer, opt, worker_index):
             if d or (ep_len * opt.action_repeat >= opt.max_ep_len):
                 sample_times, steps, _ = ray.get(replay_buffer.get_counts.remote())
 
-                while sample_times > 0 and (steps - opt.start_steps) / sample_times > opt.a_l_ratio:
-                    sample_times, steps, _ = ray.get(replay_buffer.get_counts.remote())
-                    time.sleep(0.1)
-
                 print('rollout_ep_len:', ep_len * opt.action_repeat, 'mu:', mu, 'using_difficulty:', using_difficulty,
                       'rollout_ep_ret:', ep_ret)
 
