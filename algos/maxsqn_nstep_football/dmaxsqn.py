@@ -181,13 +181,14 @@ def worker_rollout(ps, replay_buffer, opt, worker_index):
         print("worker_index:", worker_index, "worker_epsilon:", worker_epsilon)
     local_epsilon = opt.epsilon
 
-    max_sample_times = 0
+    filling_steps = 0
     mu, sigma = 0, 0.2
     while True:
         # ------ env set up ------
         # env = gym.make(opt.env_name)
 
         while True:
+            np.random.seed()
             s = np.random.normal(mu, sigma, 1)
             if 0 < s[0] < 1:
                 using_difficulty = int(s[0] // 0.05 + 1)
@@ -227,9 +228,6 @@ def worker_rollout(ps, replay_buffer, opt, worker_index):
         weights = ray.get(ps.pull.remote(keys))
         agent.set_weights(keys, weights)
 
-        # for t in range(total_steps):
-        t = 0
-
         while True:
             if opt.epsilon != 0:
                 if local_epsilon != opt.epsilon:
@@ -237,14 +235,14 @@ def worker_rollout(ps, replay_buffer, opt, worker_index):
                     local_epsilon = opt.epsilon
 
             # don't need to random sample action if load weights from local.
-            if t > opt.start_steps or opt.weights_file:
+            if filling_steps > opt.start_steps or opt.weights_file:
                 if np.random.rand() > worker_epsilon:
                     a = agent.get_action(o, deterministic=False)
                 else:
                     a = env.action_space.sample()
             else:
                 a = env.action_space.sample()
-                t += 1
+                filling_steps += 1
             # Step the env
             o2, r, d, _ = env.step(a)
 
@@ -302,22 +300,20 @@ def worker_rollout(ps, replay_buffer, opt, worker_index):
                     weights = ray.get(ps.pull.remote(keys))
                     agent.set_weights(keys, weights)
 
-                o, r, d, ep_ret, ep_len = env.reset(), 0, False, 0, 0
+                # o, r, d, ep_ret, ep_len = env.reset(), 0, False, 0, 0
+                #
+                # ################################## deques reset
+                # t_queue = 1
+                # if opt.model == "cnn":
+                #     compressed_o = pack(o)
+                #     o_queue.append((compressed_o,))
+                # else:
+                #     o_queue.append((o,))
+                #
+                # ################################## deques reset
 
-                ################################## deques reset
-                t_queue = 1
-                if opt.model == "cnn":
-                    compressed_o = pack(o)
-                    o_queue.append((compressed_o,))
-                else:
-                    o_queue.append((o,))
-
-                ################################## deques reset
-
-                if sample_times // int(1e6) > max_sample_times:
-                    mu += 0.05
-                    max_sample_times += 1
-                    break
+                mu = sample_times / 20e6
+                break
 
 
 @ray.remote
