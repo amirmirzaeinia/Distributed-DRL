@@ -61,12 +61,12 @@ class HyperParameters:
         self.left_side_ratio = 0.5
 
         self.bot_worker_ratio = 0.0
-        self.self_play_probability = 0.0  # same-weight self-play ratio
+        self.self_play_probability = 0.8  # same-weight self-play ratio
         self.pool_push_freq = int(1e4)
-        self.a_l_ratio = 20
+        self.a_l_ratio = 200
 
         self.use_max = False
-        self.reward_scale = 180
+        self.reward_scale = 250
         self.alpha = 0.1
         # self.alpha = "auto"
         self.target_entropy = 0.5
@@ -95,8 +95,8 @@ class HyperParameters:
         self.steps_per_epoch = 5000
         self.batch_size = 256
 
-        self.Ln = 5
-        self.action_repeat = 3
+        self.Ln = 7
+        self.action_repeat = 2
         self.max_ep_len = 2990
         self.save_freq = 1
 
