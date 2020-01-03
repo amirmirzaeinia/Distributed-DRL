@@ -139,6 +139,8 @@ class ParameterServer(object):
             values = [value.copy() for value in values]
             self.weights = dict(zip(keys, values))
             self.weights_pool = [copy.deepcopy(self.weights)]
+        
+        self.latest_weights = copy.deepcopy(self.weights)
 
     def push(self, keys, values):
         values = [value.copy() for value in values]
@@ -156,6 +158,8 @@ class ParameterServer(object):
         np.random.seed()
         if np.random.random() < opt.pool_pop_ratio:
             self.weights_pool.pop(0)
+        
+        self.latest_weights = copy.deepcopy(self.weights)
 
     def pool_pull(self, keys):
         # if np.random.random() < 0.2:
@@ -166,6 +170,9 @@ class ParameterServer(object):
 
     def pull(self, keys):
         return [self.weights[key] for key in keys]
+
+    def latest_pull(self, keys):
+        return [self.latest_weights[key] for key in keys]
 
     def get_weights(self):
         return copy.deepcopy(self.weights)
@@ -312,12 +319,13 @@ def worker_rollout_self_play(ps, replay_buffer, opt, worker_index):
 
         ################################## deques reset
 
-        weights = ray.get(ps.pull.remote(keys))
+        our_weights = ray.get(ps.pull.remote(keys))
         is_self_play = True
-        our_agent.set_weights(keys, weights)
+        our_agent.set_weights(keys, our_weights)
+        opp_weights = ray.get(ps.latest_pull.remote(keys)) 
         np.random.seed()
         if np.random.random() > opt.self_play_probability:
-            weights = ray.get(ps.pool_pull.remote(keys))
+            opp_weights = ray.get(ps.pool_pull.remote(keys))
             is_self_play = False
         opp_agent.set_weights(keys, weights)
 
