@@ -30,7 +30,7 @@ class HyperParameters:
         self.weights_file = weights_file
 
         self.recover = False
-        self.checkpoint_freq = 21600  # 21600s = 6h
+        self.checkpoint_freq = 11600  # 21600s = 6h
 
         # gpu memory fraction
         self.gpu_fraction = 0.3
@@ -60,7 +60,7 @@ class HyperParameters:
 
         self.left_side_ratio = 0.5
 
-        self.bot_worker_ratio = 0.5
+        self.bot_worker_ratio = 0.0
         self.self_play_probability = 0.0  # same-weight self-play ratio
         self.pool_push_freq = int(1e4)
         self.a_l_ratio = 20
@@ -138,6 +138,10 @@ class FootballWrapper(object):
         r = 0.0
         for _ in range(self.action_repeat):
             obs, reward, done, info = self._env.step(action)
+            if reward[0] != 0:
+                done = True
+            else:
+                done = False
 
             r += reward
 
