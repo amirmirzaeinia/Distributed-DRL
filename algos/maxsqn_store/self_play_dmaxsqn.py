@@ -248,7 +248,7 @@ def worker_train(ps, replay_buffer, opt, learner_index):
         if opt.model == "cnn":
             batch['obs'] = np.array([[unpack(o) for o in lno] for lno in batch['obs']])
         agent.train(batch, cnt)
-        time.sleep(0.01)
+        time.sleep(opt.learner_sleep)
         # TODO cnt % 300 == 0 before
         if cnt % 100 == 0:
             cache.q2.put(agent.get_weights())
@@ -323,7 +323,7 @@ def worker_rollout_self_play(ps, replay_buffer, opt, worker_index):
         our_weights = ray.get(ps.pull.remote(keys))
         is_self_play = True
         our_agent.set_weights(keys, our_weights)
-        opp_weights = ray.get(ps.latest_pull.remote(keys)) 
+        opp_weights = ray.get(ps.pull.remote(keys)) 
         np.random.seed()
         if np.random.random() > opt.self_play_probability:
             opp_weights = ray.get(ps.pool_pull.remote(keys))
