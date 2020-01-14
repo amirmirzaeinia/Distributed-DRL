@@ -35,7 +35,7 @@ class HyperParameters:
         # gpu memory fraction
         self.gpu_fraction = 0.3
 
-        self.hidden_size = (500, 600, 400)
+        self.hidden_size = (600, 800, 600)
 
         env_football = football_env.create_environment(env_name=self.env_name, stacked=self.stacked,
                                                        representation=self.representation, render=False)
@@ -64,7 +64,7 @@ class HyperParameters:
         self.self_play_probability = 0.8  # same-weight self-play ratio
         self.pool_push_freq = int(1e4)
         self.a_l_ratio = 200
-        self.learner_sleep = 0.015
+        self.learner_sleep = 0.025
         
         self.use_max = False
         self.reward_scale = 180
@@ -90,7 +90,7 @@ class HyperParameters:
         if self.weights_file:
             self.start_steps = self.buffer_size
 
-        self.lr = 2e-5
+        self.lr = 1e-5
         self.polyak = 0.995
 
         self.steps_per_epoch = 5000
@@ -137,7 +137,15 @@ class FootballWrapper(object):
 
     def step(self, action):
         r = 0.0
-        for _ in range(self.action_repeat):
+        for i_rp in range(self.action_repeat):
+
+            np.random.seed()
+            if np.random.random() < 0.2:
+                act = np.array([action[0], 0])
+            else:
+                act = np.array(action)
+            
+
             obs, reward, done, info = self._env.step(action)
             #if reward[0] != 0:
             #    done = True
